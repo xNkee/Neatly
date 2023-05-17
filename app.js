@@ -3,6 +3,12 @@ const app = express();
 const bodyParser = require('body-parser');
 const cors = require('cors');
 const Senhas = require('./models/senhas');
+const agora = new Date(Date.now() - (3 * 3600000));
+const dataatual = new Date().toLocaleString('pt-BR', { 
+  timeZone: 'America/Sao_Paulo',
+  dateStyle: 'short',
+  timeStyle: 'short'
+});
 
 // Configuração do bodyParser para lidar com dados JSON
 app.use(bodyParser.json());
@@ -18,14 +24,27 @@ let senhas = {
 };
 
 // Rota para criar uma senha geral
-app.post('/geral', async (req, res) => {
+app.post('/senha', async (req, res) => {
   try {
+    const { tipo } = req.body;
+    let prefixo, tipoSenha;
+    
+    if (tipo === 'geral') {
+      prefixo = 'GRL';
+      tipoSenha = 'Geral';
+    } else if (tipo === 'preferencial') {
+      prefixo = 'PFL';
+      tipoSenha = 'Preferencial';
+    }
+    
     const senha = await Senhas.create({
-      senha: `GRL${(await Senhas.count({ where: { tipo: 'Geral' } }) + 1).toString().padStart(3, '0')}`,
-      tipo: 'Geral',
-      data_emissao: new Date(),
+      senha: `${prefixo}${(await Senhas.count({ where: { tipo: tipoSenha } }) + 1).toString().padStart(3, '0')}`,
+      tipo: tipoSenha,
+      data_emissao: agora,
       status: 'Pendente',
     });
+
+    console.log(`A senha ${senha.senha} foi gerada com sucesso em ${dataatual}.`);
 
     res.status(201).json({ senha });
   } catch (err) {
@@ -34,24 +53,7 @@ app.post('/geral', async (req, res) => {
   }
 });
 
-// Rota para criar uma senha preferencial
-app.post('/preferencial', async (req, res) => {
-  try {
-    const senha = await Senhas.create({
-      senha: `PFL${(await Senhas.count({ where: { tipo: 'Preferencial' } }) + 1).toString().padStart(3, '0')}`,
-      tipo: 'Preferencial',
-      data_emissao: new Date(),
-      status: 'Pendente',
-    });
-
-    res.status(201).json({ senha });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Erro ao criar senha' });
-  }
-});
-
-// Inicia o servidor na porta 3000
+// Teste de inicialização
 app.listen(5000, () => {
-  console.log('Servidor iniciado na porta 5000');
+  console.log(`${dataatual} - Servidor iniciado na porta 5000.`);
 });
